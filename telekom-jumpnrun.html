@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TNC Sauerland - Jump'n Run</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(226, 0, 116, 0.4);
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #gameContainer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(226, 0, 116, 0.1) 50%, transparent 70%);
+            animation: shine 3s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        #gameCanvas {
+            border: 2px solid #E20074;
+            display: block;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(226, 0, 116, 0.5), inset 0 0 20px rgba(0,0,0,0.3);
+        }
+        
+        #ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding: 15px 20px;
+            background: rgba(226, 0, 116, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #score {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(226, 0, 116, 0.8);
+            letter-spacing: 1px;
+        }
+        
+        #mainMenu, #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, rgba(226, 0, 116, 0.98), rgba(155, 0, 88, 0.98));
+            color: white;
+            padding: 60px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            min-width: 500px;
+        }
+        
+        #mainMenu.hidden, #gameOver.hidden {
+            display: none;
+        }
+        
+        #mainMenu h1 {
+            font-size: 56px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px rgba(255,255,255,0.5);
+        }
+        
+        #mainMenu p {
+            font-size: 20px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        
+        .logo-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+        }
+        
+        .menu-button {
+            background: white;
+            color: #E20074;
+            border: none;
+            padding: 18px 50px;
+            font-size: 22px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .menu-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+
+        #gameOver h2 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(255,255,255,0.5);
+        }
+
+        #musicToggle {
+            background: rgba(226, 0, 116, 0.2);
+            color: white;
+            border: 2px solid #E20074;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        #musicToggle:hover {
+            background: rgba(226, 0, 116, 0.4);
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            margin-top: 30px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainMenu">
+        <h1>🎮 TNC Jump'n Run 🎮</h1>
+        <p>Sammle SIM-Karten und weiche den Monstern aus!</p>
+        <div class="logo-container">
+            <svg width="200" height="100" viewBox="0 0 640 340">
+                <defs>
+                    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4A5A9E;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#3D4E8C;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#2B3D7A;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <text x="50%" y="40%" font-family="Arial, sans-serif" font-size="140" font-weight="bold" fill="url(#logoGradient)" text-anchor="middle">tmc</text>
+                <text x="50%" y="75%" font-family="Arial, sans-serif" font-size="60" fill="#2B3D7A" text-anchor="middle">sauerland</text>
+            </svg>
+        </div>
+        <button class="menu-button" onclick="startGame()">Spiel starten</button>
+        <div class="instructions">
+            <p>🎯 Steuerung: Pfeiltasten ← → und Leertaste zum Springen</p>
+        </div>
+    </div>
+
+    <div id="gameContainer" style="display: none;">
+        <canvas id="gameCanvas" width="900" height="500"></canvas>
+        <div id="ui">
+            <div id="score">💳 SIM: 0 | ⭐ Score: 0</div>
+            <button id="musicToggle" onclick="toggleMusic()">🔊 Musik</button>
+        </div>
+    </div>
+    
+    <div id="gameOver" class="hidden">
+        <h2>Game Over!</h2>
+        <p id="finalScore" style="font-size: 28px; margin: 15px 0;"></p>
+        <button class="menu-button" onclick="restartGame()">Nochmal spielen</button>
+        <button class="menu-button" onclick="backToMenu()">Hauptmenü</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOver');
+        const mainMenu = document.getElementById('mainMenu');
+        const gameContainer = document.getElementById('gameContainer');
+        const finalScoreElement = document.getElementById('finalScore');
+        
+        let score = 0;
+        let simCards = 0;
+        let gameRunning = false;
+        let groundY = canvas.height - 80;
+        let animFrame = 0;
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let musicPlaying = true;
+        let currentBeat = 0;
+        let musicTimeout = null;
+        
+        const bassline = [
+            {freq: 130.81, duration: 500},
+            {freq: 130.81, duration: 250},
+            {freq: 164.81, duration: 250},
+            {freq: 196.00, duration: 500},
+            {freq: 164.81, duration: 500},
+            {freq: 130.81, duration: 500},
+            {freq: 110.00, duration: 500},
+            {freq: 130.81, duration: 500},
+            {freq: 146.83, duration: 500}
+        ];
+        
+        const melody = [
+            {freq: 523.25, duration: 250},
+            {freq: 587.33, duration: 250},
+            {freq: 659.25, duration: 250},
+            {freq: 783.99, duration: 250},
+            {freq: 880.00, duration: 500},
+            {freq: 783.99, duration: 250},
+            {freq: 659.25, duration: 500},
+            {freq: 587.33, duration: 250},
+            {freq: 523.25, duration: 500}
+        ];
+        
+        function playNote(frequency, duration, type = 'sine', volume = 0.1) {
+            if (!musicPlaying) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = type;
+            
+            gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000);
+        }
+        
+        function playBackgroundMusic() {
+            if (!musicPlaying || !gameRunning) return;
+            
+            const bassNote = bassline[currentBeat % bassline.length];
+            const melodyNote = melody[currentBeat % melody.length];
+            
+            playNote(bassNote.freq, bassNote.duration, 'triangle', 0.08);
+            playNote(melodyNote.freq / 2, melodyNote.duration, 'sine', 0.05);
+            
+            if (currentBeat % 2 === 0) {
+                playNote(melodyNote.freq, melodyNote.duration / 2, 'square', 0.03);
+            }
+            
+            currentBeat++;
+            
+            musicTimeout = setTimeout(playBackgroundMusic, bassNote.duration);
+        }
+        
+        function toggleMusic() {
+            musicPlaying = !musicPlaying;
+            document.getElementById('musicToggle').textContent = musicPlaying ? '🔊 Musik' : '🔇 Musik';
+            if (musicPlaying) {
+                audioContext.resume();
+                playBackgroundMusic();
+            } else {
+                clearTimeout(musicTimeout);
+            }
+        }
+        
+        function startGame() {
+            mainMenu.style.display = 'none';
+            gameContainer.style.display = 'block';
+            gameRunning = true;
+            audioContext.resume().then(() => {
+                playBackgroundMusic();
+            });
+            gameLoop();
+        }
+        
+        function backToMenu() {
+            gameOverScreen.classList.add('hidden');
+            gameContainer.style.display = 'none';
+            mainMenu.style.display = 'block';
+            gameRunning = false;
+            clearTimeout(musicTimeout);
+        }
+        
+        const player = {
+            x: 150,
+            y: groundY - 40,
+            width: 32,
+            height: 40,
+            velocityY: 0,
+            jumping: false,
+            speed: 6
+        };
+        
+        const gravity = 0.7;
+        const jumpStrength = -14;
+        
+        let obstacles = [];
+        let simCardItems = [];
+        let particles = [];
+        
+        const keys = {
+            left: false,
+            right: false,
+            space: false
+        };
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                keys.space = true;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') keys.left = false;
+            if (e.key === 'ArrowRight') keys.right = false;
+            if (e.key === ' ') keys.space = false;
+        });
+        
+        function createParticle(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1,
+                    color: color
+                });
+            }
+        }
+        
+        function drawPlayer() {
+            const px = player.x;
+            const py = player.y;
+            
+            ctx.save();
+            
+            const gradient = ctx.createLinearGradient(px, py, px, py + player.height);
+            gradient.addColorStop(0, '#E20074');
+            gradient.addColorStop(1, '#9B0058');
+            ctx.fillStyle = gradient;
+            
+            ctx.shadowColor = 'rgba(226, 0, 116, 0.6)';
+            ctx.shadowBlur = 15;
+            
+            ctx.beginPath();
+            ctx.roundRect(px + 6, py + 8, 20, 24, 8);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FFB499';
+            ctx.beginPath();
+            ctx.arc(px + 16, py + 6, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px + 13, py + 4, 2, 2);
+            ctx.fillRect(px + 19, py + 4, 2, 2);
+            ctx.beginPath();
+            ctx.arc(px + 16, py + 8, 3, 0, Math.PI);
+            ctx.stroke();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('T', px + 16, py + 22);
+            
+            ctx.fillStyle = '#000';
+            const legOffset = keys.left || keys.right ? Math.sin(animFrame / 3) * 3 : 0;
+            ctx.fillRect(px + 10 + legOffset, py + 32, 5, 8);
+            ctx.fillRect(px + 17 - legOffset, py + 32, 5, 8);
+            
+            ctx.fillStyle = '#FFB499';
+            ctx.fillRect(px + 6, py + 12, 4, 8);
+            ctx.fillRect(px + 22, py + 12, 4, 8);
+            
+            ctx.restore();
+        }
+        
+        function drawLogo() {
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            ctx.fillStyle = '#4A5A9E';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('tmc', canvas.width - 20, 40);
+            ctx.font = '18px Arial';
+            ctx.fillText('sauerland', canvas.width - 20, 60);
+            ctx.restore();
+        }
+        
+        function drawBackground() {
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a0033');
+            gradient.addColorStop(0.5, '#330066');
+            gradient.addColorStop(1, '#4d0099');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'rgba(226, 0, 116, 0.05)';
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 73 + animFrame * 0.5) % canvas.width;
+                const y = (i * 47) % canvas.height;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            particles.forEach((p, index) => {
+                ctx.fillStyle = p.color + Math.floor(p.life * 255).toString(16).padStart(2, '0');
+                ctx.fillRect(p.x, p.y, 3, 3);
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life -= 0.02;
+                if (p.life <= 0) particles.splice(index, 1);
+            });
+            
+            drawLogo();
+        }
+        
+        function drawGround() {
+            const gradient = ctx.createLinearGradient(0, groundY, 0, canvas.height);
+            gradient.addColorStop(0, '#E20074');
+            gradient.addColorStop(1, '#9B0058');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+            
+            ctx.shadowColor = 'rgba(226, 0, 116, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            for (let i = 0; i < canvas.width; i += 60) {
+                const offset = (animFrame * 2 + i) % 60;
+                ctx.fillRect(i - offset, groundY, 40, 5);
+            }
+            ctx.shadowBlur = 0;
+        }
+        
+        function spawnObstacle() {
+            if (Math.random() < 0.012) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: groundY - 45,
+                    width: 45,
+                    height: 45,
+                    speed: 5,
+                    type: Math.random() > 0.5 ? 'blob' : 'spike'
+                });
+            }
+        }
+        
+        function spawnSimCard() {
+            if (Math.random() < 0.018) {
+                simCardItems.push({
+                    x: canvas.width,
+                    y: groundY - 100 - Math.random() * 100,
+                    width: 30,
+                    height: 40,
+                    speed: 5,
+                    rotation: 0
+                });
+            }
+        }
+        
+        function drawObstacles() {
+            obstacles.forEach((obs, index) => {
+                ctx.save();
+                
+                if (obs.type === 'blob') {
+                    const pulse = Math.sin(animFrame / 8) * 3;
+                    
+                    ctx.shadowColor = 'rgba(0, 255, 0, 0.6)';
+                    ctx.shadowBlur = 20;
+                    
+                    const gradient = ctx.createRadialGradient(
+                        obs.x + obs.width/2, obs.y + obs.height/2, 5,
+                        obs.x + obs.width/2, obs.y + obs.height/2, obs.width/2
+                    );
+                    gradient.addColorStop(0, '#00ff00');
+                    gradient.addColorStop(0.5, '#00cc00');
+                    gradient.addColorStop(1, '#008800');
+                    ctx.fillStyle = gradient;
+                    
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const radius = obs.width / 2 + (i % 2 === 0 ? pulse : -pulse);
+                        const x = obs.x + obs.width/2 + Math.cos(angle) * radius;
+                        const y = obs.y + obs.height/2 + Math.sin(angle) * radius;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 - 8, obs.y + obs.height/2 - 5, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 + 8, obs.y + obs.height/2 - 5, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 - 8, obs.y + obs.height/2 - 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 + 8, obs.y + obs.height/2 - 5, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2, obs.y + obs.height/2 + 8, 8, 0, Math.PI);
+                    ctx.stroke();
+                } else {
+                    ctx.shadowColor = 'rgba(255, 0, 0, 0.6)';
+                    ctx.shadowBlur = 20;
+                    
+                    const gradient = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.height);
+                    gradient.addColorStop(0, '#ff0000');
+                    gradient.addColorStop(1, '#cc0000');
+                    ctx.fillStyle = gradient;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + obs.width/2, obs.y);
+                    ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
+                    ctx.lineTo(obs.x, obs.y + obs.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#ffff00';
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 - 8, obs.y + obs.height - 20, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(obs.x + obs.width/2 + 8, obs.y + obs.height - 20, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.moveTo(obs.x + obs.width/2 - 6, obs.y + obs.height - 10);
+                    ctx.lineTo(obs.x + obs.width/2, obs.y + obs.height - 5);
+                    ctx.lineTo(obs.x + obs.width/2 + 6, obs.y + obs.height - 10);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+                
+                obs.x -= obs.speed;
+                
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+        }
+        
+        function drawSimCards() {
+            simCardItems.forEach((sim, index) => {
+                sim.rotation += 0.05;
+                
+                ctx.save();
+                ctx.translate(sim.x + sim.width / 2, sim.y + sim.height / 2);
+                ctx.rotate(sim.rotation);
+                
+                ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+                ctx.shadowBlur = 20;
+                
+                const gradient = ctx.createLinearGradient(-sim.width/2, -sim.height/2, sim.width/2, sim.height/2);
+                gradient.addColorStop(0, '#FFD700');
+                gradient.addColorStop(0.5, '#FFA500');
+                gradient.addColorStop(1, '#FF8C00');
+                ctx.fillStyle = gradient;
+                
+                ctx.beginPath();
+                ctx.roundRect(-sim.width/2, -sim.height/2, sim.width, sim.height, 3);
+                ctx.fill();
+                
+                ctx.fillStyle = '#B8860B';
+                const chipW = sim.width * 0.5;
+                const chipH = sim.height * 0.4;
+                ctx.fillRect(-chipW/2, -chipH/2 - 3, chipW, chipH);
+                
+                ctx.strokeStyle = '#8B7500';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 3; i++) {
+                    ctx.strokeRect(-chipW/2 + 2 + i*4, -chipH/2 - 1, 2, chipH - 4);
+                }
+                
+                ctx.restore();
+                
+                sim.x -= sim.speed;
+                
+                if (sim.x + sim.width < 0) {
+                    simCardItems.splice(index, 1);
+                }
+            });
+        }
+        
+        function checkCollisions() {
+            obstacles.forEach(obs => {
+                if (player.x + 10 < obs.x + obs.width &&
+                    player.x + player.width - 10 > obs.x &&
+                    player.y + 10 < obs.y + obs.height &&
+                    player.y + player.height - 5 > obs.y) {
+                    endGame();
+                }
+            });
+            
+            simCardItems.forEach((sim, index) => {
+                const distance = Math.sqrt(
+                    Math.pow(player.x + player.width/2 - (sim.x + sim.width/2), 2) +
+                    Math.pow(player.y + player.height/2 - (sim.y + sim.height/2), 2)
+                );
+                
+                if (distance < 30) {
+                    simCardItems.splice(index, 1);
+                    simCards++;
+                    score += 50;
+                    createParticle(sim.x, sim.y, '#FFD700');
+                    updateScore();
+                    playNote(880, 100, 'sine', 0.2);
+                    playNote(1046, 100, 'sine', 0.15);
+                }
+            });
+        }
+        
+        function updateScore() {
+            scoreElement.textContent = `💳 SIM: ${simCards} | ⭐ Score: ${Math.floor(score)}`;
+        }
+        
+        function updatePlayer() {
+            if (keys.left && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys.right && player.x + player.width < canvas.width) {
+                player.x += player.speed;
+            }
+            if (keys.space && !player.jumping) {
+                player.velocityY = jumpStrength;
+                player.jumping = true;
+                playNote(523, 100, 'square', 0.15);
+            }
+            
+            player.velocityY += gravity;
+            player.y += player.velocityY;
+            
+            if (player.y >= groundY - player.height) {
+                player.y = groundY - player.height;
+                player.velocityY = 0;
+                player.jumping = false;
+            }
+        }
+        
+        function endGame() {
+            gameRunning = false;
+            clearTimeout(musicTimeout);
+            gameOverScreen.classList.remove('hidden');
+            finalScoreElement.innerHTML = `💳 SIM-Karten gesammelt: ${simCards}<br>⭐ Finaler Score: ${Math.floor(score)}`;
+            playNote(200, 300, 'sawtooth', 0.2);
+            setTimeout(() => playNote(150, 500, 'sawtooth', 0.2), 300);
+        }
+        
+        function restartGame() {
+            gameRunning = true;
+            score = 0;
+            simCards = 0;
+            updateScore();
+            player.x = 150;
+            player.y = groundY - player.height;
+            player.velocityY = 0;
+            player.jumping = false;
+            obstacles = [];
+            simCardItems = [];
+            particles = [];
+            gameOverScreen.classList.add('hidden');
+            if (musicPlaying) {
+                playBackgroundMusic();
+            }
+            gameLoop();
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            animFrame++;
+            
+            drawBackground();
+            drawGround();
+            drawPlayer();
+            drawObstacles();
+            drawSimCards();
+            
+            updatePlayer();
+            spawnObstacle();
+            spawnSimCard();
+            checkCollisions();
+            
+            score += 0.2;
+            if (animFrame % 30 === 0) {
+                updateScore();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
+</body>
+</html>
