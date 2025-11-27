@@ -1,0 +1,2301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Telekom Simulator - Das Abenteuer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --magenta: #E20074;
+            --magenta-dark: #B3005C;
+            --magenta-light: #FF1493;
+            --magenta-glow: rgba(226, 0, 116, 0.6);
+            --dark-bg: #0A0A0A;
+            --dark-surface: #151515;
+            --dark-card: #1A1A1A;
+            --accent-cyan: #00D4FF;
+            --accent-gold: #FFD700;
+            --accent-green: #00FF88;
+            --text-white: #FFFFFF;
+            --text-gray: #888888;
+            --text-light: #CCCCCC;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--dark-bg);
+            min-height: 100vh;
+            overflow: hidden;
+            color: var(--text-white);
+        }
+
+        /* ===== INTRO SEQUENCE ===== */
+        #intro-sequence {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #0A0A0A 0%, #150A10 50%, #0A0A0A 100%);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #intro-sequence.hidden {
+            display: none;
+        }
+
+        .intro-scene {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 1.5rem;
+            max-width: 500px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .intro-scene.active { display: flex; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .intro-character {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .character-container {
+            width: 120px;
+            height: 160px;
+            position: relative;
+            animation: characterBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes characterBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .speech-bubble {
+            background: var(--dark-card);
+            border: 3px solid var(--magenta);
+            border-radius: 20px;
+            padding: 1.2rem 1.5rem;
+            position: relative;
+            max-width: 350px;
+            box-shadow: 0 0 30px var(--magenta-glow);
+        }
+
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-bottom-color: var(--magenta);
+        }
+
+        .speech-text {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--text-light);
+        }
+
+        .speech-text .highlight { color: var(--magenta-light); font-weight: 700; }
+        .speech-text .cyan { color: var(--accent-cyan); font-weight: 700; }
+        .speech-text .gold { color: var(--accent-gold); font-weight: 700; }
+
+        .character-name {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--accent-cyan);
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .intro-btn {
+            margin-top: 1.5rem;
+            padding: 1rem 2.5rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 40px var(--magenta-glow);
+            transition: all 0.3s ease;
+        }
+
+        .intro-btn:hover, .intro-btn:active {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 50px var(--magenta-glow);
+        }
+
+        .tmc-intro {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .tmc-badge {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: white;
+            box-shadow: 0 0 40px var(--magenta-glow);
+            animation: tmcPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes tmcPulse {
+            0%, 100% { box-shadow: 0 0 40px var(--magenta-glow); transform: scale(1); }
+            50% { box-shadow: 0 0 60px var(--magenta-glow); transform: scale(1.05); }
+        }
+
+        /* ===== MAIN MENU ===== */
+        #main-menu {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #0A0A0A 0%, #150A10 50%, #0A0A0A 100%);
+            z-index: 100;
+        }
+
+        #main-menu.active { display: flex; }
+        #main-menu.hidden { display: none; }
+
+        .menu-bg {
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, var(--magenta-glow) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(0, 212, 255, 0.15) 0%, transparent 40%);
+            opacity: 0.5;
+        }
+
+        .menu-grid {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(226, 0, 116, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(226, 0, 116, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .logo-container {
+            position: relative;
+            margin-bottom: 0.5rem;
+            z-index: 10;
+        }
+
+        .logo-glow {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            background: var(--magenta);
+            border-radius: 50%;
+            filter: blur(70px);
+            opacity: 0.5;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .logo-t {
+            position: relative;
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--magenta);
+            text-shadow: 0 0 40px var(--magenta-glow);
+            line-height: 1;
+        }
+
+        .logo-dots {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            justify-content: center;
+        }
+
+        .logo-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--magenta);
+            border-radius: 50%;
+            animation: dotPulse 1.5s ease-in-out infinite;
+        }
+
+        .logo-dot:nth-child(2) { animation-delay: 0.15s; }
+        .logo-dot:nth-child(3) { animation-delay: 0.3s; }
+        .logo-dot:nth-child(4) { animation-delay: 0.45s; }
+        .logo-dot:nth-child(5) { animation-delay: 0.6s; }
+
+        @keyframes dotPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .game-title {
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: linear-gradient(135deg, var(--text-white) 0%, var(--magenta-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .game-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            z-index: 10;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+            z-index: 10;
+        }
+
+        .menu-btn {
+            padding: 1rem 3rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 50px;
+        }
+
+        .menu-btn.primary {
+            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-dark) 100%);
+            color: var(--text-white);
+            box-shadow: 0 10px 40px var(--magenta-glow);
+        }
+
+        .menu-btn.primary:hover, .menu-btn.primary:active {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px var(--magenta-glow);
+        }
+
+        .menu-btn.secondary {
+            background: transparent;
+            color: var(--text-white);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .menu-btn.secondary:hover { border-color: var(--magenta); color: var(--magenta-light); }
+
+        .stats-display {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            z-index: 10;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: var(--dark-card);
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-item .icon { font-size: 1.5rem; }
+        .stat-item .value { font-size: 1.3rem; font-weight: 900; color: var(--accent-cyan); }
+        .stat-item .label { font-size: 0.6rem; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.1em; }
+
+        .sound-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .sound-toggle svg { width: 22px; height: 22px; fill: white; }
+        .sound-toggle.muted .sound-on { display: none; }
+        .sound-toggle:not(.muted) .sound-off { display: none; }
+
+        /* ===== GAME CONTAINER ===== */
+        #game-container {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            background: var(--dark-bg);
+        }
+
+        #game-container.active { display: flex; }
+
+        #game-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0.8rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            z-index: 50;
+        }
+
+        .hud-left { display: flex; gap: 1rem; align-items: center; }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud-label {
+            font-size: 0.55rem;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .hud-value {
+            font-size: 1.1rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .hud-value.score { color: var(--magenta-light); }
+        .hud-value.phones { color: var(--accent-cyan); }
+        .hud-value.sims { color: var(--accent-gold); }
+
+        .hud-icon { font-size: 0.9rem; }
+
+        .hud-right { display: flex; gap: 0.5rem; }
+
+        .hud-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .hud-btn svg { width: 18px; height: 18px; fill: white; }
+        .pause-icon { display: flex; gap: 3px; }
+        .pause-icon span { width: 3px; height: 14px; background: white; border-radius: 2px; }
+
+        .level-indicator {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark-card);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--magenta);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--magenta-light);
+            z-index: 50;
+        }
+
+        .combo-display {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--accent-gold);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+
+        .combo-display.active { opacity: 1; transform: translateX(-50%) scale(1.1); }
+
+        #game-canvas {
+            flex: 1;
+            width: 100%;
+            display: block;
+        }
+
+        /* ===== MOBILE CONTROLS ===== */
+        #mobile-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 0.8rem;
+            pointer-events: auto;
+        }
+
+        .control-btn {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.05) 100%);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:active, .control-btn.pressed {
+            background: linear-gradient(135deg, var(--magenta) 0%, var(--magenta-dark) 100%);
+            border-color: var(--magenta-light);
+            transform: scale(0.95);
+            box-shadow: 0 0 25px var(--magenta-glow);
+        }
+
+        .control-btn svg { width: 26px; height: 26px; fill: white; }
+
+        .jump-btn {
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+        }
+
+        .jump-btn svg { width: 32px; height: 32px; }
+
+        /* ===== OVERLAYS ===== */
+        #pause-overlay, #game-over {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            backdrop-filter: blur(15px);
+        }
+
+        #pause-overlay.active, #game-over.active { display: flex; }
+
+        .overlay-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--magenta);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 40px var(--magenta-glow);
+        }
+
+        .final-score {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--text-white);
+        }
+
+        .final-label {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+        }
+
+        .final-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .final-stat {
+            text-align: center;
+        }
+
+        .final-stat .icon { font-size: 1.3rem; }
+        .final-stat .value { font-size: 1.3rem; font-weight: 700; }
+
+        .new-highscore {
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1.5rem;
+            animation: hsFlash 0.8s ease-in-out infinite;
+        }
+
+        @keyframes hsFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .level-complete-bonus {
+            color: var(--accent-green);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== POWERUP INDICATOR ===== */
+        .powerup-active {
+            position: absolute;
+            top: 95px;
+            right: 10px;
+            background: var(--dark-card);
+            border: 2px solid var(--accent-green);
+            border-radius: 10px;
+            padding: 0.5rem 0.8rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 50;
+            animation: powerupGlow 1s ease-in-out infinite;
+        }
+
+        .powerup-active.active { display: flex; }
+
+        @keyframes powerupGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+        }
+
+        .powerup-icon { font-size: 1.2rem; }
+        .powerup-timer { font-size: 0.9rem; font-weight: 700; color: var(--accent-green); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 380px) {
+            .game-title { font-size: 1.6rem; }
+            .logo-t { font-size: 4rem; }
+            .control-btn { width: 55px; height: 55px; }
+            .jump-btn { width: 75px; height: 75px; }
+            .speech-text { font-size: 0.9rem; }
+            .hud-value { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== INTRO SEQUENCE ===== -->
+    <div id="intro-sequence">
+        <!-- Scene 1: Veter Pogel appears -->
+        <div class="intro-scene active" id="intro-scene-1">
+            <div class="intro-character">
+                <canvas id="veter-canvas" class="character-container" width="120" height="160"></canvas>
+            </div>
+            <div class="speech-bubble">
+                <p class="speech-text">
+                    <strong>HILFE!</strong> 😰<br><br>
+                    Ich bin <span class="cyan">Veter Pogel</span> und ich brauche dringend deine Hilfe!<br><br>
+                    Die ganzen <span class="highlight">SIM-Karten</span> und <span class="highlight">Handys</span> sind über die ganze Stadt verstreut!
+                </p>
+            </div>
+            <p class="character-name">📞 Veter Pogel</p>
+            <button class="intro-btn" onclick="nextIntroScene()">Weiter →</button>
+        </div>
+
+        <!-- Scene 2: Veter explains -->
+        <div class="intro-scene" id="intro-scene-2">
+            <div class="intro-character">
+                <canvas id="veter-canvas-2" class="character-container" width="120" height="160"></canvas>
+            </div>
+            <div class="speech-bubble">
+                <p class="speech-text">
+                    Nur <span class="cyan">TMC</span> - der beste <span class="highlight">Telekom Mitarbeiter</span> - kann sie alle einsammeln! 💪<br><br>
+                    Bitte hilf mir! Sammle alle <span class="gold">SIM-Karten</span> und <span class="cyan">Handys</span> ein und werde zur Legende!
+                </p>
+            </div>
+            <p class="character-name">📞 Veter Pogel</p>
+            <button class="intro-btn" onclick="nextIntroScene()">Verstanden! →</button>
+        </div>
+
+        <!-- Scene 3: TMC responds -->
+        <div class="intro-scene" id="intro-scene-3">
+            <div class="tmc-intro">
+                <div class="tmc-badge">T</div>
+                <div class="speech-bubble">
+                    <p class="speech-text">
+                        Keine Sorge, <span class="cyan">Veter Pogel</span>! 😎<br><br>
+                        Ich bin <span class="highlight">TMC</span> - <span class="highlight">T</span>elekom <span class="highlight">M</span>obile <span class="highlight">C</span>hampion!<br><br>
+                        Ich werde <strong>JEDE</strong> SIM-Karte und <strong>JEDES</strong> Handy einsammeln! 
+                        <span class="highlight">Erlebe die Zukunft!</span> 🚀
+                    </p>
+                </div>
+                <p class="character-name" style="color: var(--magenta-light);">🦸 TMC - Telekom Mobile Champion</p>
+            </div>
+            <button class="intro-btn" onclick="startFromIntro()">Mission starten! 🎮</button>
+        </div>
+    </div>
+
+    <!-- ===== MAIN MENU ===== -->
+    <div id="main-menu">
+        <div class="menu-bg"></div>
+        <div class="menu-grid"></div>
+        
+        <button class="sound-toggle" id="sound-toggle">
+            <svg class="sound-on" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            <svg class="sound-off" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+        </button>
+        
+        <div class="logo-container">
+            <div class="logo-glow"></div>
+            <div class="logo-t">T</div>
+            <div class="logo-dots">
+                <span class="logo-dot"></span>
+                <span class="logo-dot"></span>
+                <span class="logo-dot"></span>
+                <span class="logo-dot"></span>
+                <span class="logo-dot"></span>
+            </div>
+        </div>
+
+        <h1 class="game-title">Telekom Simulator</h1>
+        <p class="game-subtitle">Das Abenteuer</p>
+
+        <div class="stats-display">
+            <div class="stat-item">
+                <div class="icon">🏆</div>
+                <div class="value" id="menu-highscore">0</div>
+                <div class="label">Highscore</div>
+            </div>
+            <div class="stat-item">
+                <div class="icon">📱</div>
+                <div class="value" id="menu-total-phones">0</div>
+                <div class="label">Handys</div>
+            </div>
+            <div class="stat-item">
+                <div class="icon">💳</div>
+                <div class="value" id="menu-total-sims">0</div>
+                <div class="label">SIMs</div>
+            </div>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="start-btn">🎮 Spielen</button>
+            <button class="menu-btn secondary" id="how-to-btn">📖 Anleitung</button>
+            <button class="menu-btn secondary" id="story-btn">📺 Story nochmal</button>
+        </div>
+    </div>
+
+    <!-- ===== GAME CONTAINER ===== -->
+    <div id="game-container">
+        <div id="game-hud">
+            <div class="hud-left">
+                <div class="hud-item">
+                    <span class="hud-label">Score</span>
+                    <span class="hud-value score" id="hud-score">0</span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">Handys</span>
+                    <span class="hud-value phones"><span class="hud-icon">📱</span><span id="hud-phones">0</span></span>
+                </div>
+                <div class="hud-item">
+                    <span class="hud-label">SIMs</span>
+                    <span class="hud-value sims"><span class="hud-icon">💳</span><span id="hud-sims">0</span></span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <button class="hud-btn" id="game-sound-btn">
+                    <svg class="sound-on" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                    <svg class="sound-off" viewBox="0 0 24 24" style="display:none"><path d="M4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                </button>
+                <button class="hud-btn" id="pause-btn">
+                    <div class="pause-icon"><span></span><span></span></div>
+                </button>
+            </div>
+        </div>
+
+        <div class="level-indicator" id="level-indicator">Level 1 - Neustadt</div>
+        <div class="combo-display" id="combo-display">COMBO x2!</div>
+        
+        <div class="powerup-active" id="powerup-indicator">
+            <span class="powerup-icon" id="powerup-icon">⚡</span>
+            <span class="powerup-timer" id="powerup-timer">5s</span>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="mobile-controls">
+            <div class="control-group">
+                <button class="control-btn" id="left-btn">
+                    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+                <button class="control-btn" id="right-btn">
+                    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+            </div>
+            <div class="control-group">
+                <button class="control-btn jump-btn" id="jump-btn">
+                    <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PAUSE OVERLAY ===== -->
+    <div id="pause-overlay">
+        <h2 class="overlay-title">⏸️ Pause</h2>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="resume-btn">▶️ Fortsetzen</button>
+            <button class="menu-btn secondary" id="quit-btn">🏠 Beenden</button>
+        </div>
+    </div>
+
+    <!-- ===== GAME OVER ===== -->
+    <div id="game-over">
+        <h2 class="overlay-title">💥 Game Over</h2>
+        <p class="final-score" id="final-score">0</p>
+        <p class="final-label">Punkte</p>
+        <div class="final-stats">
+            <div class="final-stat">
+                <div class="icon">📱</div>
+                <div class="value" id="final-phones">0</div>
+            </div>
+            <div class="final-stat">
+                <div class="icon">💳</div>
+                <div class="value" id="final-sims">0</div>
+            </div>
+            <div class="final-stat">
+                <div class="icon">⚡</div>
+                <div class="value" id="final-powerups">0</div>
+            </div>
+        </div>
+        <p class="new-highscore" id="new-highscore" style="display:none">🎉 NEUER HIGHSCORE! 🎉</p>
+        <div class="menu-buttons">
+            <button class="menu-btn primary" id="retry-btn">🔄 Nochmal</button>
+            <button class="menu-btn secondary" id="menu-btn">🏠 Hauptmenü</button>
+        </div>
+    </div>
+
+    <script>
+        // ===== AUDIO ENGINE =====
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.muted = false;
+                this.initialized = false;
+                this.musicPlaying = false;
+                this.musicInterval = null;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterGain = this.ctx.createGain();
+                    this.masterGain.connect(this.ctx.destination);
+                    this.masterGain.gain.value = 0.4;
+                    this.initialized = true;
+                } catch (e) { console.log('Audio not supported'); }
+            }
+
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                if (this.masterGain) this.masterGain.gain.value = this.muted ? 0 : 0.4;
+                return this.muted;
+            }
+
+            playNote(freq, duration, type = 'sine', volume = 0.2, delay = 0) {
+                if (!this.initialized || this.muted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                const startTime = this.ctx.currentTime + delay;
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(volume, startTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            }
+
+            playKick(time) {
+                if (!this.initialized) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(30, time + 0.1);
+                gain.gain.setValueAtTime(0.4, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(time);
+                osc.stop(time + 0.15);
+            }
+
+            playHiHat(time) {
+                if (!this.initialized) return;
+                const bufferSize = this.ctx.sampleRate * 0.05;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource();
+                const gain = this.ctx.createGain();
+                const filter = this.ctx.createBiquadFilter();
+                noise.buffer = buffer;
+                filter.type = 'highpass';
+                filter.frequency.value = 8000;
+                gain.gain.setValueAtTime(0.1, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                noise.start(time);
+                noise.stop(time + 0.05);
+            }
+
+            playMusic() {
+                if (!this.initialized || this.musicPlaying) return;
+                this.musicPlaying = true;
+                const bpm = 128;
+                const beatTime = 60 / bpm;
+                
+                const bassPattern = [82.41, 82.41, 110, 98, 82.41, 82.41, 123.47, 110]; // E2 based
+                const arpPattern = [329.63, 392, 493.88, 659.26, 493.88, 392]; // E4 arp
+                
+                let beat = 0;
+                
+                const playBeat = () => {
+                    if (!this.musicPlaying) return;
+                    const now = this.ctx.currentTime;
+                    
+                    // Kick on 1 and 3
+                    if (beat % 4 === 0 || beat % 4 === 2) {
+                        this.playKick(now);
+                    }
+                    
+                    // Hi-hat on every beat
+                    this.playHiHat(now + 0.001);
+                    
+                    // Bass
+                    const bassNote = bassPattern[beat % bassPattern.length];
+                    this.playNote(bassNote, beatTime * 0.8, 'sawtooth', 0.15);
+                    
+                    // Arp every half beat
+                    if (beat % 2 === 0) {
+                        const arpNote = arpPattern[(beat / 2) % arpPattern.length];
+                        this.playNote(arpNote, beatTime * 0.3, 'square', 0.06);
+                    }
+                    
+                    beat++;
+                };
+                
+                playBeat();
+                this.musicInterval = setInterval(playBeat, beatTime * 1000);
+            }
+
+            stopMusic() {
+                this.musicPlaying = false;
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+
+            playJump() {
+                this.playNote(400, 0.1, 'sine', 0.15);
+                this.playNote(600, 0.1, 'sine', 0.1, 0.05);
+            }
+
+            playCollectPhone() {
+                this.playNote(523, 0.1, 'sine', 0.15);
+                this.playNote(659, 0.1, 'sine', 0.15, 0.08);
+                this.playNote(784, 0.15, 'sine', 0.12, 0.16);
+            }
+
+            playCollectSim() {
+                this.playNote(698, 0.1, 'triangle', 0.12);
+                this.playNote(880, 0.1, 'triangle', 0.12, 0.08);
+                this.playNote(1047, 0.12, 'triangle', 0.1, 0.16);
+            }
+
+            playPowerup() {
+                for (let i = 0; i < 5; i++) {
+                    this.playNote(400 + i * 100, 0.1, 'square', 0.1, i * 0.06);
+                }
+            }
+
+            playCombo() {
+                this.playNote(523, 0.08, 'square', 0.12);
+                this.playNote(659, 0.08, 'square', 0.12, 0.06);
+                this.playNote(784, 0.08, 'square', 0.12, 0.12);
+                this.playNote(1047, 0.15, 'square', 0.15, 0.18);
+            }
+
+            playGameOver() {
+                this.playNote(400, 0.2, 'sawtooth', 0.15);
+                this.playNote(350, 0.2, 'sawtooth', 0.15, 0.15);
+                this.playNote(300, 0.2, 'sawtooth', 0.15, 0.3);
+                this.playNote(200, 0.4, 'sawtooth', 0.2, 0.45);
+            }
+
+            playLevelUp() {
+                const notes = [523, 587, 659, 784, 880, 1047];
+                notes.forEach((n, i) => this.playNote(n, 0.15, 'sine', 0.12, i * 0.08));
+            }
+        }
+
+        const audio = new AudioEngine();
+
+        // ===== GAME CONSTANTS =====
+        const MAGENTA = '#E20074';
+        const MAGENTA_DARK = '#B3005C';
+        const MAGENTA_LIGHT = '#FF1493';
+        const CYAN = '#00D4FF';
+        const GOLD = '#FFD700';
+        const GREEN = '#00FF88';
+        const DARK_BG = '#0A0A0A';
+
+        const GRAVITY = 0.55;
+        const JUMP_FORCE = -13.5;
+        const MOVE_SPEED = 5;
+        const BASE_GAME_SPEED = 5;
+
+        const LEVELS = [
+            { name: 'Neustadt', target: 500, bgColor: '#0A0A0A' },
+            { name: 'City Center', target: 1500, bgColor: '#0A0A12' },
+            { name: 'Tech Park', target: 3000, bgColor: '#0A120A' },
+            { name: 'Magenta Tower', target: 5000, bgColor: '#120A0A' },
+            { name: 'Cloud Zone', target: 8000, bgColor: '#0A0A1A' }
+        ];
+
+        // ===== GAME STATE =====
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameRunning = false;
+        let gamePaused = false;
+        let score = 0;
+        let phones = 0;
+        let sims = 0;
+        let powerupsCollected = 0;
+        let highscore = parseInt(localStorage.getItem('telekomSimHS')) || 0;
+        let totalPhones = parseInt(localStorage.getItem('telekomTotalPhones')) || 0;
+        let totalSims = parseInt(localStorage.getItem('telekomTotalSims')) || 0;
+        let gameSpeed = BASE_GAME_SPEED;
+        let frameCount = 0;
+        let currentLevel = 0;
+        let combo = 0;
+        let comboTimer = 0;
+        let lastCollectTime = 0;
+
+        // Player
+        const player = {
+            x: 80, y: 0, width: 45, height: 65,
+            velocityY: 0, velocityX: 0,
+            grounded: false, jumping: false,
+            facing: 1, // 1 = right, -1 = left
+            animFrame: 0
+        };
+
+        // Powerup state
+        let activePowerup = null;
+        let powerupTime = 0;
+
+        // Game objects
+        let platforms = [];
+        let collectibles = [];
+        let obstacles = [];
+        let particles = [];
+        let clouds = [];
+        let bgOffset = 0;
+
+        // Controls
+        const keys = { left: false, right: false, jump: false };
+
+        // ===== INTRO FUNCTIONS =====
+        let currentIntroScene = 1;
+
+        function drawVeterPogel(canvasId) {
+            const c = document.getElementById(canvasId);
+            if (!c) return;
+            const x = c.getContext('2d');
+            const w = c.width, h = c.height;
+            x.clearRect(0, 0, w, h);
+            
+            // Body (casual clothes - blue shirt)
+            x.fillStyle = '#3498db';
+            x.beginPath();
+            x.roundRect(35, 55, 50, 60, 8);
+            x.fill();
+            
+            // Pants
+            x.fillStyle = '#2c3e50';
+            x.fillRect(38, 105, 20, 40);
+            x.fillRect(62, 105, 20, 40);
+            
+            // Shoes
+            x.fillStyle = '#1a1a1a';
+            x.beginPath();
+            x.roundRect(35, 140, 25, 12, 4);
+            x.fill();
+            x.beginPath();
+            x.roundRect(60, 140, 25, 12, 4);
+            x.fill();
+            
+            // Head
+            x.fillStyle = '#fdbf6f';
+            x.beginPath();
+            x.arc(60, 35, 25, 0, Math.PI * 2);
+            x.fill();
+            
+            // Hair (messy)
+            x.fillStyle = '#8B4513';
+            x.beginPath();
+            x.arc(60, 25, 20, Math.PI, 0);
+            x.fill();
+            x.fillRect(42, 20, 8, 15);
+            x.fillRect(70, 22, 8, 12);
+            
+            // Worried eyes
+            x.fillStyle = 'white';
+            x.beginPath();
+            x.ellipse(52, 35, 6, 7, 0, 0, Math.PI * 2);
+            x.fill();
+            x.beginPath();
+            x.ellipse(68, 35, 6, 7, 0, 0, Math.PI * 2);
+            x.fill();
+            
+            x.fillStyle = '#333';
+            x.beginPath();
+            x.arc(53, 36, 3, 0, Math.PI * 2);
+            x.fill();
+            x.beginPath();
+            x.arc(67, 36, 3, 0, Math.PI * 2);
+            x.fill();
+            
+            // Worried eyebrows
+            x.strokeStyle = '#8B4513';
+            x.lineWidth = 2;
+            x.beginPath();
+            x.moveTo(46, 28);
+            x.lineTo(56, 26);
+            x.stroke();
+            x.beginPath();
+            x.moveTo(64, 26);
+            x.lineTo(74, 28);
+            x.stroke();
+            
+            // Worried mouth
+            x.strokeStyle = '#333';
+            x.lineWidth = 2;
+            x.beginPath();
+            x.arc(60, 50, 8, 0.2 * Math.PI, 0.8 * Math.PI);
+            x.stroke();
+            
+            // Arms (raised in distress)
+            x.fillStyle = '#fdbf6f';
+            x.save();
+            x.translate(35, 65);
+            x.rotate(-0.5);
+            x.fillRect(-5, 0, 12, 35);
+            x.restore();
+            
+            x.save();
+            x.translate(85, 65);
+            x.rotate(0.5);
+            x.fillRect(-7, 0, 12, 35);
+            x.restore();
+            
+            // Sweat drop
+            x.fillStyle = CYAN;
+            x.beginPath();
+            x.moveTo(82, 25);
+            x.quadraticCurveTo(88, 35, 82, 40);
+            x.quadraticCurveTo(76, 35, 82, 25);
+            x.fill();
+        }
+
+        function nextIntroScene() {
+            document.getElementById(`intro-scene-${currentIntroScene}`).classList.remove('active');
+            currentIntroScene++;
+            if (currentIntroScene <= 3) {
+                document.getElementById(`intro-scene-${currentIntroScene}`).classList.add('active');
+                if (currentIntroScene <= 2) {
+                    setTimeout(() => drawVeterPogel(`veter-canvas${currentIntroScene === 1 ? '' : '-2'}`), 100);
+                }
+            }
+        }
+
+        function startFromIntro() {
+            document.getElementById('intro-sequence').classList.add('hidden');
+            document.getElementById('main-menu').classList.add('active');
+            localStorage.setItem('telekomIntroSeen', 'true');
+        }
+
+        function showIntro() {
+            currentIntroScene = 1;
+            document.querySelectorAll('.intro-scene').forEach(s => s.classList.remove('active'));
+            document.getElementById('intro-scene-1').classList.add('active');
+            document.getElementById('intro-sequence').classList.remove('hidden');
+            document.getElementById('main-menu').classList.remove('active');
+            setTimeout(() => drawVeterPogel('veter-canvas'), 100);
+        }
+        // ===== INITIALIZATION =====
+        function init() {
+            resizeCanvas();
+            updateMenuStats();
+            setupEventListeners();
+            
+            // Check if intro was seen
+            const introSeen = localStorage.getItem('telekomIntroSeen');
+            if (!introSeen) {
+                setTimeout(() => drawVeterPogel('veter-canvas'), 100);
+            } else {
+                document.getElementById('intro-sequence').classList.add('hidden');
+                document.getElementById('main-menu').classList.add('active');
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function updateMenuStats() {
+            document.getElementById('menu-highscore').textContent = highscore;
+            document.getElementById('menu-total-phones').textContent = totalPhones;
+            document.getElementById('menu-total-sims').textContent = totalSims;
+        }
+
+        function updateSoundBtns() {
+            const menuBtn = document.getElementById('sound-toggle');
+            const gameBtn = document.getElementById('game-sound-btn');
+            if (audio.muted) {
+                menuBtn.classList.add('muted');
+                gameBtn.querySelector('.sound-on').style.display = 'none';
+                gameBtn.querySelector('.sound-off').style.display = 'block';
+            } else {
+                menuBtn.classList.remove('muted');
+                gameBtn.querySelector('.sound-on').style.display = 'block';
+                gameBtn.querySelector('.sound-off').style.display = 'none';
+            }
+        }
+
+        function setupEventListeners() {
+            window.addEventListener('resize', resizeCanvas);
+
+            // Sound toggles
+            document.getElementById('sound-toggle').addEventListener('click', () => {
+                audio.init();
+                audio.toggleMute();
+                updateSoundBtns();
+            });
+            document.getElementById('game-sound-btn').addEventListener('click', () => {
+                audio.toggleMute();
+                updateSoundBtns();
+            });
+
+            // Menu buttons
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('how-to-btn').addEventListener('click', showInstructions);
+            document.getElementById('story-btn').addEventListener('click', showIntro);
+            document.getElementById('pause-btn').addEventListener('click', togglePause);
+            document.getElementById('resume-btn').addEventListener('click', togglePause);
+            document.getElementById('quit-btn').addEventListener('click', quitToMenu);
+            document.getElementById('retry-btn').addEventListener('click', startGame);
+            document.getElementById('menu-btn').addEventListener('click', quitToMenu);
+
+            // Mobile controls
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            const jumpBtn = document.getElementById('jump-btn');
+
+            const addTouchEvents = (btn, key) => {
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; btn.classList.add('pressed'); });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; btn.classList.remove('pressed'); });
+                btn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[key] = false; btn.classList.remove('pressed'); });
+            };
+
+            addTouchEvents(leftBtn, 'left');
+            addTouchEvents(rightBtn, 'right');
+            addTouchEvents(jumpBtn, 'jump');
+
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = true;
+                if (e.key === 'Escape') togglePause();
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') keys.jump = false;
+            });
+        }
+
+        function startGame() {
+            audio.init();
+            audio.resume();
+            
+            document.getElementById('main-menu').classList.remove('active');
+            document.getElementById('game-container').classList.add('active');
+            document.getElementById('game-over').classList.remove('active');
+            
+            // Reset state
+            score = 0;
+            phones = 0;
+            sims = 0;
+            powerupsCollected = 0;
+            gameSpeed = BASE_GAME_SPEED;
+            frameCount = 0;
+            currentLevel = 0;
+            combo = 0;
+            comboTimer = 0;
+            activePowerup = null;
+            powerupTime = 0;
+            
+            player.x = 80;
+            player.y = canvas.height - 200;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.grounded = false;
+            player.jumping = false;
+            player.facing = 1;
+            player.animFrame = 0;
+            
+            platforms = [];
+            collectibles = [];
+            obstacles = [];
+            particles = [];
+            clouds = [];
+            
+            generateInitialWorld();
+            updateLevelIndicator();
+            
+            gameRunning = true;
+            gamePaused = false;
+            
+            audio.playMusic();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function generateInitialWorld() {
+            // Generate clouds
+            for (let i = 0; i < 8; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width * 2,
+                    y: 50 + Math.random() * 150,
+                    size: 30 + Math.random() * 40,
+                    speed: 0.3 + Math.random() * 0.5
+                });
+            }
+
+            // Ground
+            platforms.push({
+                x: 0, y: canvas.height - 80,
+                width: canvas.width * 3, height: 80,
+                type: 'ground'
+            });
+
+            // Initial platforms
+            for (let i = 0; i < 6; i++) {
+                const px = 250 + i * 220;
+                const py = canvas.height - 180 - Math.random() * 140;
+                platforms.push({
+                    x: px, y: py,
+                    width: 100 + Math.random() * 80,
+                    height: 18,
+                    type: 'floating'
+                });
+
+                // Collectible
+                if (Math.random() > 0.3) {
+                    spawnCollectible(px + 50, py - 45);
+                }
+            }
+        }
+
+        function spawnCollectible(x, y) {
+            const rand = Math.random();
+            let type;
+            if (rand < 0.45) type = 'phone';
+            else if (rand < 0.85) type = 'sim';
+            else type = 'powerup';
+
+            collectibles.push({
+                x, y, type,
+                collected: false,
+                angle: Math.random() * Math.PI * 2,
+                bobOffset: Math.random() * Math.PI * 2
+            });
+        }
+
+        function showInstructions() {
+            alert('📱 TELEKOM SIMULATOR - ANLEITUNG\n\n' +
+                '🎯 MISSION:\n' +
+                'Hilf TMC alle Handys und SIM-Karten einzusammeln!\n\n' +
+                '🎮 STEUERUNG:\n' +
+                '← → oder A/D: Bewegen\n' +
+                '↑ oder Leertaste: Springen\n' +
+                'ESC: Pause\n\n' +
+                '📱 PUNKTE:\n' +
+                '• Handy = 100 Punkte\n' +
+                '• SIM-Karte = 50 Punkte\n' +
+                '• Combo = Bonus Multiplikator!\n\n' +
+                '⚡ POWERUPS:\n' +
+                '• Magnet - Zieht Items an\n' +
+                '• Speed - Schneller laufen\n' +
+                '• Shield - 1x Schutz\n\n' +
+                '⚠️ Vermeide die Hindernisse!');
+        }
+
+        function togglePause() {
+            if (!gameRunning) return;
+            gamePaused = !gamePaused;
+            document.getElementById('pause-overlay').classList.toggle('active', gamePaused);
+            if (gamePaused) {
+                audio.stopMusic();
+            } else {
+                audio.playMusic();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function quitToMenu() {
+            gameRunning = false;
+            gamePaused = false;
+            audio.stopMusic();
+            document.getElementById('pause-overlay').classList.remove('active');
+            document.getElementById('game-over').classList.remove('active');
+            document.getElementById('game-container').classList.remove('active');
+            document.getElementById('main-menu').classList.add('active');
+            updateMenuStats();
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            audio.stopMusic();
+            audio.playGameOver();
+            
+            // Update totals
+            totalPhones += phones;
+            totalSims += sims;
+            localStorage.setItem('telekomTotalPhones', totalPhones);
+            localStorage.setItem('telekomTotalSims', totalSims);
+            
+            const isNewHS = score > highscore;
+            if (isNewHS) {
+                highscore = score;
+                localStorage.setItem('telekomSimHS', highscore);
+            }
+            
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('final-phones').textContent = phones;
+            document.getElementById('final-sims').textContent = sims;
+            document.getElementById('final-powerups').textContent = powerupsCollected;
+            document.getElementById('new-highscore').style.display = isNewHS ? 'block' : 'none';
+            document.getElementById('game-over').classList.add('active');
+        }
+
+        function updateLevelIndicator() {
+            const level = LEVELS[currentLevel] || LEVELS[LEVELS.length - 1];
+            document.getElementById('level-indicator').textContent = `Level ${currentLevel + 1} - ${level.name}`;
+        }
+
+        // ===== GAME LOOP =====
+        function gameLoop() {
+            if (!gameRunning || gamePaused) return;
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update() {
+            frameCount++;
+            
+            // Speed increase
+            if (frameCount % 600 === 0) {
+                gameSpeed = Math.min(gameSpeed + 0.3, 12);
+            }
+
+            // Level check
+            const newLevel = LEVELS.findIndex(l => score < l.target);
+            if (newLevel !== -1 && newLevel !== currentLevel) {
+                currentLevel = newLevel;
+                updateLevelIndicator();
+                audio.playLevelUp();
+            }
+
+            // Update score
+            const baseScore = Math.floor(frameCount / 8);
+            score = baseScore + phones * 100 + sims * 50;
+
+            // Combo timer
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer <= 0) {
+                    combo = 0;
+                    document.getElementById('combo-display').classList.remove('active');
+                }
+            }
+
+            // Powerup timer
+            if (activePowerup) {
+                powerupTime--;
+                document.getElementById('powerup-timer').textContent = Math.ceil(powerupTime / 60) + 's';
+                if (powerupTime <= 0) {
+                    activePowerup = null;
+                    document.getElementById('powerup-indicator').classList.remove('active');
+                }
+            }
+
+            // Update HUD
+            document.getElementById('hud-score').textContent = score;
+            document.getElementById('hud-phones').textContent = phones;
+            document.getElementById('hud-sims').textContent = sims;
+
+            // Player movement
+            const speed = activePowerup === 'speed' ? MOVE_SPEED * 1.5 : MOVE_SPEED;
+            if (keys.left) {
+                player.velocityX = -speed;
+                player.facing = -1;
+            } else if (keys.right) {
+                player.velocityX = speed;
+                player.facing = 1;
+            } else {
+                player.velocityX *= 0.85;
+            }
+
+            // Jumping
+            if (keys.jump && player.grounded) {
+                player.velocityY = JUMP_FORCE;
+                player.grounded = false;
+                player.jumping = true;
+                audio.playJump();
+                createJumpParticles();
+            }
+
+            // Physics
+            player.velocityY += GRAVITY;
+            player.y += player.velocityY;
+            player.x += player.velocityX;
+
+            // Boundaries
+            player.x = Math.max(10, Math.min(canvas.width - player.width - 10, player.x));
+
+            // Animation
+            if (Math.abs(player.velocityX) > 0.5) {
+                player.animFrame += 0.2;
+            }
+
+            // Platform collision
+            player.grounded = false;
+            for (const plat of platforms) {
+                if (checkPlatformCollision(player, plat)) {
+                    player.y = plat.y - player.height;
+                    player.velocityY = 0;
+                    player.grounded = true;
+                    player.jumping = false;
+                }
+            }
+
+            // Fall death
+            if (player.y > canvas.height + 100) {
+                gameOver();
+                return;
+            }
+
+            // Move world
+            bgOffset += gameSpeed * 0.5;
+            for (const plat of platforms) plat.x -= gameSpeed;
+            for (const obs of obstacles) obs.x -= gameSpeed;
+            for (const col of collectibles) col.x -= gameSpeed;
+            for (const cloud of clouds) cloud.x -= cloud.speed;
+
+            // Clean up off-screen objects
+            platforms = platforms.filter(p => p.x + p.width > -100);
+            obstacles = obstacles.filter(o => o.x + o.width > -50);
+            collectibles = collectibles.filter(c => c.x > -50 && !c.collected);
+
+            // Regenerate clouds
+            clouds = clouds.filter(c => c.x + c.size > -50);
+            while (clouds.length < 8) {
+                clouds.push({
+                    x: canvas.width + Math.random() * 200,
+                    y: 50 + Math.random() * 150,
+                    size: 30 + Math.random() * 40,
+                    speed: 0.3 + Math.random() * 0.5
+                });
+            }
+
+            // Generate new platforms
+            while (platforms.length < 10) {
+                const last = platforms[platforms.length - 1];
+                const gap = 80 + Math.random() * 120;
+                const newX = last.x + last.width + gap;
+                const isGround = Math.random() > 0.65;
+
+                if (isGround) {
+                    platforms.push({
+                        x: newX,
+                        y: canvas.height - 80,
+                        width: 180 + Math.random() * 250,
+                        height: 80,
+                        type: 'ground'
+                    });
+
+                    // Obstacle on ground
+                    if (Math.random() > 0.5) {
+                        obstacles.push({
+                            x: newX + 50 + Math.random() * 100,
+                            y: canvas.height - 130,
+                            width: 25,
+                            height: 50,
+                            type: 'spike'
+                        });
+                    }
+                } else {
+                    const py = canvas.height - 160 - Math.random() * 180;
+                    platforms.push({
+                        x: newX,
+                        y: py,
+                        width: 90 + Math.random() * 70,
+                        height: 18,
+                        type: 'floating'
+                    });
+                }
+
+                // Spawn collectible
+                if (Math.random() > 0.35) {
+                    const p = platforms[platforms.length - 1];
+                    spawnCollectible(p.x + p.width / 2, p.y - 50);
+                }
+            }
+
+            // Collectible collision
+            for (const item of collectibles) {
+                if (item.collected) continue;
+                item.angle += 0.05;
+
+                // Magnet effect
+                if (activePowerup === 'magnet') {
+                    const dx = (player.x + player.width/2) - item.x;
+                    const dy = (player.y + player.height/2) - item.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 150) {
+                        item.x += dx * 0.08;
+                        item.y += dy * 0.08;
+                    }
+                }
+
+                if (checkItemCollision(player, item)) {
+                    item.collected = true;
+                    handleCollect(item);
+                }
+            }
+
+            // Obstacle collision
+            for (const obs of obstacles) {
+                if (checkCollision(player, obs)) {
+                    if (activePowerup === 'shield') {
+                        activePowerup = null;
+                        document.getElementById('powerup-indicator').classList.remove('active');
+                        createHitParticles();
+                        obstacles.splice(obstacles.indexOf(obs), 1);
+                    } else {
+                        createHitParticles();
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+
+            // Update particles
+            for (const p of particles) {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.15;
+                p.life--;
+            }
+            particles = particles.filter(p => p.life > 0);
+        }
+
+        function handleCollect(item) {
+            const now = frameCount;
+            
+            // Combo system
+            if (now - lastCollectTime < 90) {
+                combo++;
+                comboTimer = 120;
+                if (combo >= 3) {
+                    audio.playCombo();
+                    document.getElementById('combo-display').textContent = `COMBO x${combo}!`;
+                    document.getElementById('combo-display').classList.add('active');
+                    score += combo * 25;
+                }
+            } else {
+                combo = 1;
+            }
+            lastCollectTime = now;
+
+            if (item.type === 'phone') {
+                phones++;
+                audio.playCollectPhone();
+                createCollectParticles(item.x, item.y, CYAN);
+            } else if (item.type === 'sim') {
+                sims++;
+                audio.playCollectSim();
+                createCollectParticles(item.x, item.y, GOLD);
+            } else if (item.type === 'powerup') {
+                powerupsCollected++;
+                const types = ['magnet', 'speed', 'shield'];
+                activePowerup = types[Math.floor(Math.random() * types.length)];
+                powerupTime = 300; // 5 seconds
+                audio.playPowerup();
+                createCollectParticles(item.x, item.y, GREEN);
+                
+                const icons = { magnet: '🧲', speed: '⚡', shield: '🛡️' };
+                document.getElementById('powerup-icon').textContent = icons[activePowerup];
+                document.getElementById('powerup-indicator').classList.add('active');
+            }
+        }
+
+        // ===== COLLISION HELPERS =====
+        function checkPlatformCollision(p, plat) {
+            return p.velocityY >= 0 &&
+                p.x < plat.x + plat.width &&
+                p.x + p.width > plat.x &&
+                p.y + p.height >= plat.y &&
+                p.y + p.height <= plat.y + plat.height + 12;
+        }
+
+        function checkCollision(a, b) {
+            return a.x < b.x + b.width &&
+                a.x + a.width > b.x &&
+                a.y < b.y + b.height &&
+                a.y + a.height > b.y;
+        }
+
+        function checkItemCollision(p, item) {
+            const px = p.x + p.width / 2;
+            const py = p.y + p.height / 2;
+            const dx = px - item.x;
+            const dy = py - item.y;
+            return Math.sqrt(dx*dx + dy*dy) < 38;
+        }
+
+        // ===== PARTICLE EFFECTS =====
+        function createJumpParticles() {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: player.x + player.width/2,
+                    y: player.y + player.height,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: Math.random() * 2,
+                    color: MAGENTA,
+                    life: 20 + Math.random() * 10
+                });
+            }
+        }
+
+        function createCollectParticles(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    color,
+                    life: 25 + Math.random() * 15
+                });
+            }
+        }
+
+        function createHitParticles() {
+            for (let i = 0; i < 20; i++) {
+                particles.push({
+                    x: player.x + player.width/2,
+                    y: player.y + player.height/2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.5) * 12,
+                    color: MAGENTA_LIGHT,
+                    life: 35 + Math.random() * 20
+                });
+            }
+        }
+        // ===== RENDERING =====
+        function render() {
+            const level = LEVELS[currentLevel] || LEVELS[0];
+            
+            // Background
+            ctx.fillStyle = level.bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid
+            ctx.strokeStyle = 'rgba(226, 0, 116, 0.06)';
+            ctx.lineWidth = 1;
+            const gridSize = 60;
+            const ox = bgOffset % gridSize;
+            for (let x = -ox; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Clouds
+            for (const cloud of clouds) {
+                drawCloud(cloud);
+            }
+
+            // Horizon glow
+            const grad = ctx.createLinearGradient(0, canvas.height - 200, 0, canvas.height);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(1, 'rgba(226, 0, 116, 0.15)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, canvas.height - 200, canvas.width, 200);
+
+            // Platforms
+            for (const plat of platforms) {
+                drawPlatform(plat);
+            }
+
+            // Obstacles
+            for (const obs of obstacles) {
+                drawObstacle(obs);
+            }
+
+            // Collectibles
+            for (const item of collectibles) {
+                if (!item.collected) drawCollectible(item);
+            }
+
+            // Particles
+            for (const p of particles) {
+                ctx.globalAlpha = p.life / 40;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            // Player (TMC!)
+            drawTMC();
+        }
+
+        function drawCloud(cloud) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.beginPath();
+            ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+            ctx.arc(cloud.x + cloud.size * 0.6, cloud.y - cloud.size * 0.2, cloud.size * 0.7, 0, Math.PI * 2);
+            ctx.arc(cloud.x + cloud.size * 1.1, cloud.y, cloud.size * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawPlatform(plat) {
+            if (plat.type === 'ground') {
+                // Main body
+                const g = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.height);
+                g.addColorStop(0, MAGENTA);
+                g.addColorStop(1, MAGENTA_DARK);
+                ctx.fillStyle = g;
+                ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+
+                // Top line
+                ctx.fillStyle = MAGENTA_LIGHT;
+                ctx.fillRect(plat.x, plat.y, plat.width, 4);
+
+                // Grid lines
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                for (let x = plat.x; x < plat.x + plat.width; x += 35) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, plat.y);
+                    ctx.lineTo(x, plat.y + plat.height);
+                    ctx.stroke();
+                }
+            } else {
+                // Floating platform
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.roundRect(plat.x, plat.y, plat.width, plat.height, 5);
+                ctx.fill();
+
+                // Glow top
+                ctx.shadowColor = MAGENTA;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = MAGENTA;
+                ctx.fillRect(plat.x + 2, plat.y, plat.width - 4, 3);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawObstacle(obs) {
+            ctx.fillStyle = CYAN;
+            ctx.shadowColor = CYAN;
+            ctx.shadowBlur = 15;
+            
+            // Spike
+            ctx.beginPath();
+            ctx.moveTo(obs.x + obs.width/2, obs.y);
+            ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
+            ctx.lineTo(obs.x, obs.y + obs.height);
+            ctx.closePath();
+            ctx.fill();
+
+            // Warning stripes at base
+            ctx.fillStyle = '#FF4444';
+            ctx.fillRect(obs.x - 3, obs.y + obs.height - 5, obs.width + 6, 5);
+            
+            ctx.shadowBlur = 0;
+        }
+
+        function drawCollectible(item) {
+            const bob = Math.sin(frameCount * 0.08 + item.bobOffset) * 6;
+            ctx.save();
+            ctx.translate(item.x, item.y + bob);
+
+            if (item.type === 'phone') {
+                // Smartphone
+                ctx.shadowColor = CYAN;
+                ctx.shadowBlur = 18;
+
+                // Phone body
+                ctx.fillStyle = '#1a1a2e';
+                ctx.beginPath();
+                ctx.roundRect(-14, -24, 28, 48, 5);
+                ctx.fill();
+
+                // Screen with Telekom T
+                ctx.fillStyle = MAGENTA;
+                ctx.fillRect(-11, -20, 22, 35);
+                
+                // T Logo on screen
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 18px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText('T', 0, 2);
+
+                // Camera
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.arc(0, -22, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Home button
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.arc(0, 20, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (item.type === 'sim') {
+                // SIM Card
+                ctx.shadowColor = GOLD;
+                ctx.shadowBlur = 18;
+                ctx.rotate(item.angle * 0.5);
+
+                // Card body
+                ctx.fillStyle = GOLD;
+                ctx.beginPath();
+                ctx.moveTo(-12, -16);
+                ctx.lineTo(12, -16);
+                ctx.lineTo(12, 10);
+                ctx.lineTo(5, 16);
+                ctx.lineTo(-12, 16);
+                ctx.closePath();
+                ctx.fill();
+
+                // Chip
+                ctx.fillStyle = '#DAA520';
+                ctx.fillRect(-7, -7, 14, 14);
+
+                // Chip details
+                ctx.strokeStyle = '#B8860B';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(-7, 0);
+                ctx.lineTo(7, 0);
+                ctx.moveTo(0, -7);
+                ctx.lineTo(0, 7);
+                ctx.stroke();
+
+                // T Logo
+                ctx.fillStyle = MAGENTA;
+                ctx.font = 'bold 8px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText('T', 0, -10);
+
+            } else if (item.type === 'powerup') {
+                // Powerup box
+                ctx.shadowColor = GREEN;
+                ctx.shadowBlur = 25;
+                
+                ctx.rotate(item.angle);
+
+                // Box
+                ctx.fillStyle = GREEN;
+                ctx.beginPath();
+                ctx.roundRect(-15, -15, 30, 30, 6);
+                ctx.fill();
+
+                // Question mark / lightning
+                ctx.fillStyle = '#004422';
+                ctx.font = 'bold 20px Outfit';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('⚡', 0, 0);
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        // ===== TMC CHARACTER - Telekom Mitarbeiter =====
+        function drawTMC() {
+            ctx.save();
+            ctx.translate(player.x + player.width/2, player.y + player.height/2);
+            
+            // Flip if facing left
+            if (player.facing === -1) ctx.scale(-1, 1);
+            
+            const jumping = player.jumping;
+            const running = Math.abs(player.velocityX) > 0.5;
+            const legAnim = running ? Math.sin(player.animFrame) * 8 : 0;
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, player.height/2 - 5, 18, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // ===== LEGS =====
+            ctx.fillStyle = '#1a1a2e'; // Dark pants
+            
+            // Left leg
+            ctx.save();
+            ctx.translate(-8, 10);
+            if (jumping) ctx.rotate(0.3);
+            ctx.fillRect(-5, 0, 10, 22 + (jumping ? -5 : legAnim));
+            // Shoe
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.roundRect(-6, 20 + (jumping ? -5 : legAnim), 14, 8, 3);
+            ctx.fill();
+            ctx.restore();
+
+            // Right leg
+            ctx.save();
+            ctx.translate(8, 10);
+            if (jumping) ctx.rotate(-0.3);
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(-5, 0, 10, 22 + (jumping ? -5 : -legAnim));
+            // Shoe
+            ctx.fillStyle = '#111';
+            ctx.beginPath();
+            ctx.roundRect(-6, 20 + (jumping ? -5 : -legAnim), 14, 8, 3);
+            ctx.fill();
+            ctx.restore();
+
+            // ===== BODY - Magenta Telekom Polo =====
+            ctx.shadowColor = MAGENTA;
+            ctx.shadowBlur = 15;
+            
+            // Torso
+            const bodyGrad = ctx.createLinearGradient(-18, -25, 18, 15);
+            bodyGrad.addColorStop(0, MAGENTA_LIGHT);
+            bodyGrad.addColorStop(0.5, MAGENTA);
+            bodyGrad.addColorStop(1, MAGENTA_DARK);
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.roundRect(-18, -25, 36, 40, 8);
+            ctx.fill();
+
+            // Polo collar
+            ctx.fillStyle = MAGENTA_DARK;
+            ctx.beginPath();
+            ctx.moveTo(-10, -25);
+            ctx.lineTo(0, -18);
+            ctx.lineTo(10, -25);
+            ctx.lineTo(10, -22);
+            ctx.lineTo(0, -15);
+            ctx.lineTo(-10, -22);
+            ctx.closePath();
+            ctx.fill();
+
+            // T Logo on chest
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText('T', 0, 0);
+
+            // Name badge
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.roundRect(-12, 5, 24, 10, 2);
+            ctx.fill();
+            ctx.fillStyle = MAGENTA;
+            ctx.font = 'bold 6px Outfit';
+            ctx.fillText('TMC', 0, 12);
+
+            ctx.shadowBlur = 0;
+
+            // ===== ARMS =====
+            ctx.fillStyle = '#fdbf6f'; // Skin
+
+            // Left arm
+            ctx.save();
+            ctx.translate(-18, -18);
+            const leftArmRot = jumping ? -0.8 : (running ? Math.sin(player.animFrame + 1) * 0.4 : 0.1);
+            ctx.rotate(leftArmRot);
+            // Sleeve
+            ctx.fillStyle = MAGENTA;
+            ctx.fillRect(-4, 0, 10, 12);
+            // Arm
+            ctx.fillStyle = '#fdbf6f';
+            ctx.fillRect(-3, 10, 8, 14);
+            // Hand
+            ctx.beginPath();
+            ctx.arc(1, 26, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Right arm
+            ctx.save();
+            ctx.translate(18, -18);
+            const rightArmRot = jumping ? 0.8 : (running ? Math.sin(player.animFrame) * 0.4 : -0.1);
+            ctx.rotate(rightArmRot);
+            // Sleeve
+            ctx.fillStyle = MAGENTA;
+            ctx.fillRect(-6, 0, 10, 12);
+            // Arm
+            ctx.fillStyle = '#fdbf6f';
+            ctx.fillRect(-5, 10, 8, 14);
+            // Hand
+            ctx.beginPath();
+            ctx.arc(-1, 26, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Phone in hand!
+            if (!jumping) {
+                ctx.fillStyle = '#1a1a2e';
+                ctx.beginPath();
+                ctx.roundRect(-6, 20, 10, 16, 2);
+                ctx.fill();
+                ctx.fillStyle = CYAN;
+                ctx.fillRect(-5, 22, 8, 10);
+            }
+            ctx.restore();
+
+            // ===== HEAD =====
+            // Neck
+            ctx.fillStyle = '#fdbf6f';
+            ctx.fillRect(-6, -30, 12, 8);
+
+            // Head shape
+            ctx.fillStyle = '#fdbf6f';
+            ctx.beginPath();
+            ctx.ellipse(0, -42, 16, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hair (neat, professional)
+            ctx.fillStyle = '#2c1810';
+            ctx.beginPath();
+            ctx.ellipse(0, -52, 14, 10, 0, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(-14, -52, 28, 8);
+            // Side hair
+            ctx.fillRect(-16, -50, 4, 12);
+            ctx.fillRect(12, -50, 4, 12);
+
+            // Ears
+            ctx.fillStyle = '#fdbf6f';
+            ctx.beginPath();
+            ctx.ellipse(-16, -42, 4, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(16, -42, 4, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Headset (Telekom style!)
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, -48, 18, Math.PI * 0.8, Math.PI * 0.2);
+            ctx.stroke();
+            
+            // Headset ear pieces
+            ctx.fillStyle = MAGENTA;
+            ctx.beginPath();
+            ctx.ellipse(-16, -42, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(16, -42, 6, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Microphone
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.moveTo(-16, -38);
+            ctx.quadraticCurveTo(-20, -30, -12, -28);
+            ctx.lineTo(-10, -30);
+            ctx.quadraticCurveTo(-16, -32, -14, -38);
+            ctx.fill();
+            
+            // Mic tip
+            ctx.fillStyle = MAGENTA;
+            ctx.beginPath();
+            ctx.arc(-11, -28, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.ellipse(-6, -42, 5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(6, -42, 5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pupils (look in movement direction)
+            const pupilOffset = player.facing * 1.5;
+            ctx.fillStyle = '#2c1810';
+            ctx.beginPath();
+            ctx.arc(-6 + pupilOffset, -42, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(6 + pupilOffset, -42, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyebrows (determined look)
+            ctx.strokeStyle = '#2c1810';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, -50);
+            ctx.lineTo(-3, -48);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(10, -50);
+            ctx.lineTo(3, -48);
+            ctx.stroke();
+
+            // Mouth (confident smile)
+            ctx.strokeStyle = '#c47a5a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (jumping) {
+                // Excited open mouth
+                ctx.arc(0, -34, 5, 0, Math.PI);
+                ctx.fill();
+            } else {
+                // Confident smile
+                ctx.arc(0, -36, 6, 0.1 * Math.PI, 0.9 * Math.PI);
+            }
+            ctx.stroke();
+
+            // Nose
+            ctx.fillStyle = '#e5a87a';
+            ctx.beginPath();
+            ctx.moveTo(0, -44);
+            ctx.lineTo(3, -36);
+            ctx.lineTo(-3, -36);
+            ctx.closePath();
+            ctx.fill();
+
+            // Powerup glow effect
+            if (activePowerup) {
+                ctx.globalAlpha = 0.3 + Math.sin(frameCount * 0.2) * 0.2;
+                const glowColor = activePowerup === 'magnet' ? '#FF00FF' : 
+                                  activePowerup === 'speed' ? '#FFFF00' : '#00FFFF';
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 30;
+                ctx.strokeStyle = glowColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.ellipse(0, -10, 25, 40, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.restore();
+        }
+
+        // Helper for rounded rectangles
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x + r, y);
+            this.arcTo(x + w, y, x + w, y + h, r);
+            this.arcTo(x + w, y + h, x, y + h, r);
+            this.arcTo(x, y + h, x, y, r);
+            this.arcTo(x, y, x + w, y, r);
+            this.closePath();
+            return this;
+        };
+
+        // Initialize!
+        init();
+    </script>
+</body>
+</html>
